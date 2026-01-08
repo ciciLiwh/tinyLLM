@@ -21,12 +21,12 @@ tokenizer = ByteLevelBPETokenizer()
 
 tokenizer.train(
     files=[input_file_path],
-    vocab_size=4000,         
+    vocab_size=3000,         
     min_frequency=2,
-    special_tokens=[],
+    special_tokens=["<|endoftext|>"],
 )
 
-if not os.path.exists(input_file_path):
+if not os.path.exists("bbpe"):
     os.mkdir("bbpe")
     
 tokenizer.save_model("bbpe")
