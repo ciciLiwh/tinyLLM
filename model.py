@@ -1,23 +1,30 @@
+import math
+from typing import Tuple
+
 import torch
 import torch.nn as nn
 import torch.nn.functional as F
-import math
+from torch import Tensor
 
 
 class RMSNorm(nn.Module):
-    def __init__(self, dim, eps=1e-6):
+    """Root mean square layer normalization."""
+
+    def __init__(self, dim: int, eps: float = 1e-6) -> None:
         super().__init__()
         self.weight = nn.Parameter(torch.ones(dim))
         self.eps = eps
 
-    def forward(self, x):
-        # x: (B, T, C)
+    def forward(self, x: Tensor) -> Tensor:
         norm = x.pow(2).mean(dim=-1, keepdim=True)
-        x = x * torch.rsqrt(norm + self.eps)
-        return self.weight * x
-    
+        scaled = x * torch.rsqrt(norm + self.eps)
+        return self.weight * scaled
+
+
 class RotaryEmbedding(nn.Module):
-    def __init__(self, dim, max_seq_len=2048):
+    """Precomputes rotary positional embeddings."""
+
+    def __init__(self, dim: int, max_seq_len: int = 2048) -> None:
         super().__init__()
         inv_freq = 1.0 / (10000 ** (torch.arange(0, dim, 2).float() / dim))
         t = torch.arange(max_seq_len).float()
@@ -25,16 +32,21 @@ class RotaryEmbedding(nn.Module):
         self.register_buffer("cos", freqs.cos())
         self.register_buffer("sin", freqs.sin())
 
-    def apply_rope(self, x, seq_len):
+    def apply_rope(self, x: Tensor, seq_len: int) -> Tensor:
         cos = self.cos[:seq_len][None, :, None, :]
         sin = self.sin[:seq_len][None, :, None, :]
 
         x1, x2 = x[..., ::2], x[..., 1::2]
-        return torch.cat([x1 * cos - x2 * sin,
-                          x1 * sin + x2 * cos], dim=-1)
+        return torch.cat(
+            [x1 * cos - x2 * sin, x1 * sin + x2 * cos],
+            dim=-1,
+        )
+
 
 class GQASelfAttention(nn.Module):
-    def __init__(self, dim, num_q_heads, num_kv_heads):
+    """Grouped-query attention with per-head gating."""
+
+    def __init__(self, dim: int, num_q_heads: int, num_kv_heads: int) -> None:
         super().__init__()
         assert num_q_heads % num_kv_heads == 0
         self.num_q_heads = num_q_heads
@@ -49,15 +61,15 @@ class GQASelfAttention(nn.Module):
         self.gate_proj = nn.Linear(self.head_dim, self.head_dim, bias=True)
         self.out_proj = nn.Linear(dim, dim)
 
-    def forward(self, x, rope: RotaryEmbedding):
-        B, T, C = x.shape
+    def forward(self, x: Tensor, rope: RotaryEmbedding) -> Tensor:
+        batch, seq_len, channels = x.shape
 
-        q = self.q_proj(x).view(B, T, self.num_q_heads, self.head_dim)
-        k = self.k_proj(x).view(B, T, self.num_kv_heads, self.head_dim)
-        v = self.v_proj(x).view(B, T, self.num_kv_heads, self.head_dim)
+        q = self.q_proj(x).view(batch, seq_len, self.num_q_heads, self.head_dim)
+        k = self.k_proj(x).view(batch, seq_len, self.num_kv_heads, self.head_dim)
+        v = self.v_proj(x).view(batch, seq_len, self.num_kv_heads, self.head_dim)
 
-        q = rope.apply_rope(q, T)
-        k = rope.apply_rope(k, T)
+        q = rope.apply_rope(q, seq_len)
+        k = rope.apply_rope(k, seq_len)
 
         q = self.qNorm(q)
         k = self.kNorm(k)
@@ -69,30 +81,33 @@ class GQASelfAttention(nn.Module):
 
         attn = torch.einsum("bthd,bshd->bhts", q, k) / math.sqrt(self.head_dim)
 
-        causal_mask = torch.tril(torch.ones(T, T, device=x.device))
+        causal_mask = torch.tril(torch.ones(seq_len, seq_len, device=x.device))
         attn = attn.masked_fill(causal_mask == 0, float("-inf"))
 
         attn = F.softmax(attn, dim=-1)
         out = torch.einsum("bhts,bshd->bthd", attn, v)
         gate = torch.sigmoid(self.gate_proj(out))
         out = out * gate
-        out = out.reshape(B, T, C)
+        out = out.reshape(batch, seq_len, channels)
         return self.out_proj(out)
-    
+
+
 class MoE(nn.Module):
-    def __init__(self, dim, hidden_dim, num_experts):
+    """Simple top-1 routed mixture of experts."""
+
+    def __init__(self, dim: int, hidden_dim: int, num_experts: int) -> None:
         super().__init__()
         self.router = nn.Linear(dim, num_experts)
         self.experts = nn.ModuleList([
             nn.Sequential(
                 nn.Linear(dim, hidden_dim),
                 nn.GELU(),
-                nn.Linear(hidden_dim, dim)
+                nn.Linear(hidden_dim, dim),
             ) for _ in range(num_experts)
         ])
 
-    def forward(self, x):
-        B, T, C = x.shape
+    def forward(self, x: Tensor) -> Tensor:
+        _, seq_len, _ = x.shape
         logits = self.router(x)
         probs = F.softmax(logits, dim=-1)
 
@@ -105,9 +120,19 @@ class MoE(nn.Module):
                 out[mask] = expert(x[mask])
 
         return out
-    
+
+
 class DecoderBlock(nn.Module):
-    def __init__(self, dim, num_q_heads, num_kv_heads, moe_hidden, num_experts):
+    """Decoder block with GQA and MoE."""
+
+    def __init__(
+        self,
+        dim: int,
+        num_q_heads: int,
+        num_kv_heads: int,
+        moe_hidden: int,
+        num_experts: int,
+    ) -> None:
         super().__init__()
         self.ln1 = RMSNorm(dim)
         self.attn = GQASelfAttention(dim, num_q_heads, num_kv_heads)
@@ -115,23 +140,24 @@ class DecoderBlock(nn.Module):
         self.ln2 = RMSNorm(dim)
         self.moe = MoE(dim, moe_hidden, num_experts)
 
-    def forward(self, x, rope):
+    def forward(self, x: Tensor, rope: RotaryEmbedding) -> Tensor:
         x = x + self.attn(self.ln1(x), rope)
         x = x + self.moe(self.ln2(x))
         return x
-    
+
+
 class DecoderOnlyTransformer(nn.Module):
     def __init__(
         self,
-        vocab_size,
-        dim=512,
-        num_layers=6,
-        num_q_heads=8,
-        num_kv_heads=2,
-        moe_hidden=2048,
-        num_experts=4,
-        max_seq_len=2048
-    ):
+        vocab_size: int,
+        dim: int = 512,
+        num_layers: int = 6,
+        num_q_heads: int = 8,
+        num_kv_heads: int = 2,
+        moe_hidden: int = 2048,
+        num_experts: int = 4,
+        max_seq_len: int = 2048,
+    ) -> None:
         super().__init__()
 
         self.embed = nn.Embedding(vocab_size, dim)
@@ -145,23 +171,29 @@ class DecoderOnlyTransformer(nn.Module):
         self.norm = RMSNorm(dim)
         self.lm_head = nn.Linear(dim, vocab_size, bias=False)
 
-    def forward(self, input_ids):
+    def forward(self, input_ids: Tensor) -> Tensor:
         x = self.embed(input_ids)
         for layer in self.layers:
             x = layer(x, self.rope)
         x = self.norm(x)
         return self.lm_head(x)
-    
-def main():
-    # ====== device (MPS 优先) ======
+
+
+def select_device() -> torch.device:
+    """Prefer MPS when present; fall back to CPU."""
     if torch.backends.mps.is_available():
-        device = torch.device("mps")
-    else:
-        device = torch.device("cpu")
+        return torch.device("mps")
+    return torch.device("cpu")
+
+
+def run_dummy_pass(
+    vocab_size: int = 100,
+    batch_size: int = 2,
+    seq_len: int = 16,
+) -> Tuple[Tensor, float]:
+    device = select_device()
     print("Using device:", device)
 
-    # ====== 超小模型，防止 M 芯片炸显存 ======
-    vocab_size = 100
     model = DecoderOnlyTransformer(
         vocab_size=vocab_size,
         dim=128,
@@ -170,35 +202,34 @@ def main():
         num_kv_heads=2,
         moe_hidden=256,
         num_experts=2,
-        max_seq_len=64
+        max_seq_len=64,
     ).to(device)
 
-    # ====== dummy input ======
-    batch_size = 2
-    seq_len = 16
     input_ids = torch.randint(
         0, vocab_size, (batch_size, seq_len),
-        device=device
+        device=device,
     )
 
-    # ====== forward ======
     logits = model(input_ids)
     print("logits shape:", logits.shape)  # (B, T, vocab)
 
-    # ====== language modeling loss ======
     loss = F.cross_entropy(
         logits[:, :-1].reshape(-1, vocab_size),
-        input_ids[:, 1:].reshape(-1)
+        input_ids[:, 1:].reshape(-1),
     )
     print("loss:", loss.item())
 
-    # ====== backward ======
     optimizer = torch.optim.AdamW(model.parameters(), lr=1e-3)
     optimizer.zero_grad()
     loss.backward()
     optimizer.step()
 
     print("Backward & step OK ✅")
+    return logits, loss.item()
+
+
+def main() -> None:
+    run_dummy_pass()
 
 
 if __name__ == "__main__":
