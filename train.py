@@ -1,89 +1,168 @@
-"""
-Sample from a trained model
-"""
-import os
-import pickle
-from contextlib import nullcontext
+import json
+from pathlib import Path
+from typing import Tuple
+
+import numpy as np
 import torch
-import tiktoken
-from model import GPTConfig, GPT
+import torch.nn.functional as F
+from torch.utils.data import DataLoader, Dataset
 
-# -----------------------------------------------------------------------------
-init_from = 'resume' # either 'resume' (from an out_dir) or a gpt2 variant (e.g. 'gpt2-xl')
-out_dir = 'out' # ignored if init_from is not 'resume'
-start = "\n" # or "<|endoftext|>" or etc. Can also specify a file, use as: "FILE:prompt.txt"
-num_samples = 10 # number of samples to draw
-max_new_tokens = 500 # number of tokens generated in each sample
-temperature = 0.8 # 1.0 = no change, < 1.0 = less random, > 1.0 = more random, in predictions
-top_k = 200 # retain only the top_k most likely tokens, clamp others to have 0 probability
-seed = 1337
-device = 'cuda' # examples: 'cpu', 'cuda', 'cuda:0', 'cuda:1', etc.
-dtype = 'bfloat16' if torch.cuda.is_available() and torch.cuda.is_bf16_supported() else 'float16' # 'float32' or 'bfloat16' or 'float16'
-compile = False # use PyTorch 2.0 to compile the model to be faster
-exec(open('configurator.py').read()) # overrides from command line or config file
-# -----------------------------------------------------------------------------
+from model import DecoderOnlyTransformer, select_device
 
-torch.manual_seed(seed)
-torch.cuda.manual_seed(seed)
-torch.backends.cuda.matmul.allow_tf32 = True # allow tf32 on matmul
-torch.backends.cudnn.allow_tf32 = True # allow tf32 on cudnn
-device_type = 'cuda' if 'cuda' in device else 'cpu' # for later use in torch.autocast
-ptdtype = {'float32': torch.float32, 'bfloat16': torch.bfloat16, 'float16': torch.float16}[dtype]
-ctx = nullcontext() if device_type == 'cpu' else torch.amp.autocast(device_type=device_type, dtype=ptdtype)
 
-# model
-if init_from == 'resume':
-    # init from a model saved in a specific directory
-    ckpt_path = os.path.join(out_dir, 'ckpt.pt')
-    checkpoint = torch.load(ckpt_path, map_location=device)
-    gptconf = GPTConfig(**checkpoint['model_args'])
-    model = GPT(gptconf)
-    state_dict = checkpoint['model']
-    unwanted_prefix = '_orig_mod.'
-    for k,v in list(state_dict.items()):
-        if k.startswith(unwanted_prefix):
-            state_dict[k[len(unwanted_prefix):]] = state_dict.pop(k)
-    model.load_state_dict(state_dict)
-elif init_from.startswith('gpt2'):
-    # init from a given GPT-2 model
-    model = GPT.from_pretrained(init_from, dict(dropout=0.0))
+DATA_DIR = Path("data")
+VOCAB_PATH = DATA_DIR / "bbpe" / "vocab.json"
+TRAIN_BIN = DATA_DIR / "train.bin"
+VAL_BIN = DATA_DIR / "val.bin"
 
-model.eval()
-model.to(device)
-if compile:
-    model = torch.compile(model) # requires PyTorch 2.0 (optional)
+BLOCK_SIZE = 128
+BATCH_SIZE = 32
+NUM_EPOCHS = 2
+LEARNING_RATE = 3e-4
+LOG_INTERVAL = 100
+OUT_DIR = Path("out")
+SEED = 1337
 
-# look for the meta pickle in case it is available in the dataset folder
-load_meta = False
-if init_from == 'resume' and 'config' in checkpoint and 'dataset' in checkpoint['config']: # older checkpoints might not have these...
-    meta_path = os.path.join('data', checkpoint['config']['dataset'], 'meta.pkl')
-    load_meta = os.path.exists(meta_path)
-if load_meta:
-    print(f"Loading meta from {meta_path}...")
-    with open(meta_path, 'rb') as f:
-        meta = pickle.load(f)
-    # TODO want to make this more general to arbitrary encoder/decoder schemes
-    stoi, itos = meta['stoi'], meta['itos']
-    encode = lambda s: [stoi[c] for c in s]
-    decode = lambda l: ''.join([itos[i] for i in l])
-else:
-    # ok let's assume gpt-2 encodings by default
-    print("No meta.pkl found, assuming GPT-2 encodings...")
-    enc = tiktoken.get_encoding("gpt2")
-    encode = lambda s: enc.encode(s, allowed_special={"<|endoftext|>"})
-    decode = lambda l: enc.decode(l)
 
-# encode the beginning of the prompt
-if start.startswith('FILE:'):
-    with open(start[5:], 'r', encoding='utf-8') as f:
-        start = f.read()
-start_ids = encode(start)
-x = (torch.tensor(start_ids, dtype=torch.long, device=device)[None, ...])
+class BinaryDataset(Dataset):
+    """Loads uint16 token streams and returns input/target pairs of length block_size."""
 
-# run generation
-with torch.no_grad():
-    with ctx:
-        for k in range(num_samples):
-            y = model.generate(x, max_new_tokens, temperature=temperature, top_k=top_k)
-            print(decode(y[0].tolist()))
-            print('---------------')
+    def __init__(self, bin_path: Path, block_size: int) -> None:
+        super().__init__()
+        self.data = np.memmap(bin_path, dtype=np.uint16, mode="r")
+        self.block_size = block_size
+
+    def __len__(self) -> int:
+        return len(self.data) - self.block_size - 1
+
+    def __getitem__(self, idx: int) -> Tuple[torch.Tensor, torch.Tensor]:
+        chunk = np.asarray(
+            self.data[idx: idx + self.block_size + 1],
+            dtype=np.int64,
+        )
+        x = torch.from_numpy(chunk[:-1])
+        y = torch.from_numpy(chunk[1:])
+        return x, y
+
+
+def load_vocab_size(vocab_path: Path) -> int:
+    with open(vocab_path, "r", encoding="utf-8") as f:
+        vocab = json.load(f)
+    return len(vocab)
+
+
+def build_model(vocab_size: int) -> DecoderOnlyTransformer:
+    # Match the lightweight demo config from model.py
+    return DecoderOnlyTransformer(
+        vocab_size=vocab_size,
+        dim=128,
+        num_layers=2,
+        num_q_heads=4,
+        num_kv_heads=2,
+        moe_hidden=256,
+        num_experts=2,
+        max_seq_len=max(BLOCK_SIZE, 64),
+    )
+
+
+def evaluate(
+    model: DecoderOnlyTransformer,
+    data_loader: DataLoader,
+    device: torch.device,
+    vocab_size: int,
+) -> float:
+    model.eval()
+    total_loss = 0.0
+    total_tokens = 0
+    with torch.no_grad():
+        for x, y in data_loader:
+            x = x.to(device)
+            y = y.to(device)
+            logits = model(x)
+            loss = F.cross_entropy(
+                logits.view(-1, vocab_size),
+                y.view(-1),
+                reduction="sum",
+            )
+            total_loss += loss.item()
+            total_tokens += y.numel()
+    model.train()
+    return total_loss / total_tokens
+
+
+def main() -> None:
+    torch.manual_seed(SEED)
+    device = select_device()
+    print("Using device:", device)
+
+    vocab_size = load_vocab_size(VOCAB_PATH)
+    print("Vocab size:", vocab_size)
+
+    train_ds = BinaryDataset(TRAIN_BIN, BLOCK_SIZE)
+    val_ds = BinaryDataset(VAL_BIN, BLOCK_SIZE)
+
+    train_loader = DataLoader(
+        train_ds,
+        batch_size=BATCH_SIZE,
+        shuffle=True,
+        drop_last=True,
+    )
+    val_loader = DataLoader(
+        val_ds,
+        batch_size=BATCH_SIZE,
+        shuffle=False,
+        drop_last=True,
+    )
+
+    model = build_model(vocab_size).to(device)
+    optimizer = torch.optim.AdamW(model.parameters(), lr=LEARNING_RATE)
+
+    OUT_DIR.mkdir(parents=True, exist_ok=True)
+
+    global_step = 0
+    for epoch in range(NUM_EPOCHS):
+        print(f"Epoch {epoch + 1}/{NUM_EPOCHS}")
+        for x, y in train_loader:
+            x = x.to(device)
+            y = y.to(device)
+
+            logits = model(x)
+            loss = F.cross_entropy(
+                logits.view(-1, vocab_size),
+                y.view(-1),
+            )
+
+            optimizer.zero_grad()
+            loss.backward()
+            optimizer.step()
+
+            if (global_step + 1) % LOG_INTERVAL == 0:
+                print(f"step {global_step + 1}: loss {loss.item():.4f}")
+
+            global_step += 1
+
+        val_loss = evaluate(model, val_loader, device, vocab_size)
+        print(f"validation loss: {val_loss:.4f}")
+
+        ckpt_path = OUT_DIR / f"decoder_epoch{epoch + 1}.pt"
+        torch.save(
+            {
+                "model_state": model.state_dict(),
+                "vocab_size": vocab_size,
+                "config": {
+                    "dim": model.embed.embedding_dim,
+                    "num_layers": len(model.layers),
+                    "num_q_heads": model.layers[0].attn.num_q_heads,
+                    "num_kv_heads": model.layers[0].attn.num_kv_heads,
+                    "moe_hidden": model.layers[0].moe.experts[0][0].out_features // 2,
+                    "num_experts": len(model.layers[0].moe.experts),
+                    "max_seq_len": model.rope.cos.size(0),
+                },
+            },
+            ckpt_path,
+        )
+        print(f"Saved checkpoint to {ckpt_path}")
+
+
+if __name__ == "__main__":
+    main()

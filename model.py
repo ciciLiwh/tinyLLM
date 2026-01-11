@@ -92,6 +92,14 @@ class GQASelfAttention(nn.Module):
         return self.out_proj(out)
 
 
+class SwiGLU(nn.Module):
+    """SwiGLU activation: (xW1) * sigmoid(xW2)."""
+
+    def forward(self, x: Tensor) -> Tensor:
+        x1, x2 = x.chunk(2, dim=-1)
+        return x1 * torch.sigmoid(x2)
+
+
 class MoE(nn.Module):
     """Simple top-1 routed mixture of experts."""
 
@@ -100,8 +108,8 @@ class MoE(nn.Module):
         self.router = nn.Linear(dim, num_experts)
         self.experts = nn.ModuleList([
             nn.Sequential(
-                nn.Linear(dim, hidden_dim),
-                nn.GELU(),
+                nn.Linear(dim, hidden_dim * 2),
+                SwiGLU(),
                 nn.Linear(hidden_dim, dim),
             ) for _ in range(num_experts)
         ])
