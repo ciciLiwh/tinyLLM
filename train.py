@@ -12,36 +12,31 @@ from model import DecoderOnlyTransformer, select_device
 
 DATA_DIR = Path("data")
 VOCAB_PATH = DATA_DIR / "bbpe" / "vocab.json"
-TRAIN_BIN = DATA_DIR / "train.bin"
-VAL_BIN = DATA_DIR / "val.bin"
+TRAIN_BIN = DATA_DIR / "pretrain.bin"
 
-BLOCK_SIZE = 128
-BATCH_SIZE = 32
-NUM_EPOCHS = 2
+BLOCK_SIZE = 256
+BATCH_SIZE = 16
+NUM_EPOCHS = 1
 LEARNING_RATE = 3e-4
-LOG_INTERVAL = 100
+LOG_INTERVAL = 1000
 OUT_DIR = Path("out")
-SEED = 1337
+SEED = 42
 
 
 class BinaryDataset(Dataset):
-    """Loads uint16 token streams and returns input/target pairs of length block_size."""
-
-    def __init__(self, bin_path: Path, block_size: int) -> None:
-        super().__init__()
+    def __init__(self, bin_path, block_size):
         self.data = np.memmap(bin_path, dtype=np.uint16, mode="r")
         self.block_size = block_size
+        self.n_blocks = len(self.data) // block_size
 
-    def __len__(self) -> int:
-        return len(self.data) - self.block_size - 1
+    def __len__(self):
+        return self.n_blocks - 1
 
-    def __getitem__(self, idx: int) -> Tuple[torch.Tensor, torch.Tensor]:
-        chunk = np.asarray(
-            self.data[idx: idx + self.block_size + 1],
-            dtype=np.int64,
-        )
-        x = torch.from_numpy(chunk[:-1])
-        y = torch.from_numpy(chunk[1:])
+    def __getitem__(self, idx):
+        start = idx * self.block_size
+        chunk = self.data[start: start + self.block_size + 1]
+        x = torch.from_numpy(chunk[:-1].astype(np.int64))
+        y = torch.from_numpy(chunk[1:].astype(np.int64))
         return x, y
 
 
@@ -56,7 +51,7 @@ def build_model(vocab_size: int) -> DecoderOnlyTransformer:
     return DecoderOnlyTransformer(
         vocab_size=vocab_size,
         dim=128,
-        num_layers=2,
+        num_layers=4,
         num_q_heads=4,
         num_kv_heads=2,
         moe_hidden=256,
@@ -99,18 +94,11 @@ def main() -> None:
     print("Vocab size:", vocab_size)
 
     train_ds = BinaryDataset(TRAIN_BIN, BLOCK_SIZE)
-    val_ds = BinaryDataset(VAL_BIN, BLOCK_SIZE)
 
     train_loader = DataLoader(
         train_ds,
         batch_size=BATCH_SIZE,
         shuffle=True,
-        drop_last=True,
-    )
-    val_loader = DataLoader(
-        val_ds,
-        batch_size=BATCH_SIZE,
-        shuffle=False,
         drop_last=True,
     )
 
@@ -141,10 +129,8 @@ def main() -> None:
 
             global_step += 1
 
-        val_loss = evaluate(model, val_loader, device, vocab_size)
-        print(f"validation loss: {val_loss:.4f}")
-
-        ckpt_path = OUT_DIR / f"decoder_epoch{epoch + 1}.pt"
+        # 每个epoch结束后都保存模型，但使用相同的文件名（覆盖更新）
+        ckpt_path = OUT_DIR / "decoder_latest.pt"
         torch.save(
             {
                 "model_state": model.state_dict(),
@@ -158,10 +144,12 @@ def main() -> None:
                     "num_experts": len(model.layers[0].moe.experts),
                     "max_seq_len": model.rope.cos.size(0),
                 },
+                "epoch": epoch + 1,
+                "global_step": global_step,
             },
             ckpt_path,
         )
-        print(f"Saved checkpoint to {ckpt_path}")
+        print(f"Saved latest checkpoint to {ckpt_path} (epoch {epoch + 1})")
 
 
 if __name__ == "__main__":

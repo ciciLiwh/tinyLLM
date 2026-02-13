@@ -21,26 +21,54 @@ class RMSNorm(nn.Module):
         return self.weight * scaled
 
 
+# class RotaryEmbedding(nn.Module):
+#     """Precomputes rotary positional embeddings."""
+
+#     def __init__(self, dim: int, max_seq_len: int = 2048) -> None:
+#         super().__init__()
+#         inv_freq = 1.0 / (10000 ** (torch.arange(0, dim, 2).float() / dim))
+#         t = torch.arange(max_seq_len).float()
+#         freqs = torch.einsum("i,j->ij", t, inv_freq)
+#         self.register_buffer("cos", freqs.cos())
+#         self.register_buffer("sin", freqs.sin())
+
+#     def apply_rope(self, x: Tensor, seq_len: int) -> Tensor:
+#         cos = self.cos[:seq_len][None, :, None, :]
+#         sin = self.sin[:seq_len][None, :, None, :]
+
+#         x1, x2 = x[..., ::2], x[..., 1::2]
+#         return torch.cat(
+#             [x1 * cos - x2 * sin, x1 * sin + x2 * cos],
+#             dim=-1,
+#         )
+    
 class RotaryEmbedding(nn.Module):
     """Precomputes rotary positional embeddings."""
 
-    def __init__(self, dim: int, max_seq_len: int = 2048) -> None:
+    def __init__(self, head_dim: int, max_seq_len: int = 2048) -> None:  # 改为head_dim
         super().__init__()
-        inv_freq = 1.0 / (10000 ** (torch.arange(0, dim, 2).float() / dim))
+        # head_dim应该是每个头的维度
+        inv_freq = 1.0 / (10000 ** (torch.arange(0, head_dim, 2).float() / head_dim))
         t = torch.arange(max_seq_len).float()
         freqs = torch.einsum("i,j->ij", t, inv_freq)
         self.register_buffer("cos", freqs.cos())
         self.register_buffer("sin", freqs.sin())
 
     def apply_rope(self, x: Tensor, seq_len: int) -> Tensor:
-        cos = self.cos[:seq_len][None, :, None, :]
-        sin = self.sin[:seq_len][None, :, None, :]
-
-        x1, x2 = x[..., ::2], x[..., 1::2]
+        cos = self.cos[:seq_len][None, :, None, :]  # [1, seq_len, 1, head_dim/2]
+        sin = self.sin[:seq_len][None, :, None, :]  # [1, seq_len, 1, head_dim/2]
+        
+        # x的形状: [batch, seq_len, num_heads, head_dim]
+        # 将head_dim分成两部分
+        half_dim = x.shape[-1] // 2
+        x1 = x[..., :half_dim]  # 前一半
+        x2 = x[..., half_dim:]  # 后一半
+        
         return torch.cat(
             [x1 * cos - x2 * sin, x1 * sin + x2 * cos],
             dim=-1,
         )
+
 
 
 class GQASelfAttention(nn.Module):
@@ -169,7 +197,10 @@ class DecoderOnlyTransformer(nn.Module):
         super().__init__()
 
         self.embed = nn.Embedding(vocab_size, dim)
-        self.rope = RotaryEmbedding(dim // num_q_heads, max_seq_len)
+
+        # 计算每个头的维度
+        head_dim = dim // num_q_heads
+        self.rope = RotaryEmbedding(head_dim, max_seq_len)  # 传入head_dim
 
         self.layers = nn.ModuleList([
             DecoderBlock(dim, num_q_heads, num_kv_heads, moe_hidden, num_experts)
@@ -197,20 +228,20 @@ def select_device() -> torch.device:
 def run_dummy_pass(
     vocab_size: int = 100,
     batch_size: int = 2,
-    seq_len: int = 16,
+    seq_len: int = 134,
 ) -> Tuple[Tensor, float]:
     device = select_device()
     print("Using device:", device)
 
     model = DecoderOnlyTransformer(
         vocab_size=vocab_size,
-        dim=128,
+        dim=256,
         num_layers=2,
         num_q_heads=4,
         num_kv_heads=2,
         moe_hidden=256,
         num_experts=2,
-        max_seq_len=64,
+        max_seq_len=256,
     ).to(device)
 
     input_ids = torch.randint(

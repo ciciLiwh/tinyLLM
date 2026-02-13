@@ -1,0 +1,29 @@
+Using device: mps
+Vocab size: 4096
+Epoch 1/1
+step 500: loss 5.2409
+step 1000: loss 4.8247
+step 1500: loss 4.4656
+step 2000: loss 4.2866
+step 2500: loss 4.0276
+step 3000: loss 3.7972
+step 3500: loss 3.5883
+step 4000: loss 3.4655
+step 4500: loss 3.2733
+step 5000: loss 3.0443
+step 5500: loss 2.8729
+step 6000: loss 2.7502
+step 6500: loss 2.6451
+step 7000: loss 2.5699
+step 7500: loss 2.4352
+step 8000: loss 2.2699
+step 8500: loss 2.1947
+step 9000: loss 2.1530
+step 9500: loss 1.9987
+step 10000: loss 1.9068
+step 10500: loss 1.7812
+step 11000: loss 1.6724
+step 11500: loss 1.5959
+step 12000: loss 1.5633
+validation loss: 1.7541
+Saved checkpoint to out/decoder_epoch1.pt
