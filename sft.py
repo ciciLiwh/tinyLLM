@@ -16,15 +16,15 @@ from model import DecoderOnlyTransformer, select_device
 # Paths & hyperparameters
 # =========================
 
-DATA_PATH = Path("data") / "sft.jsonl"
+DATA_PATH = Path("data") / "宋词_SFT.jsonl"
 VOCAB_PATH = Path("data") / "bbpe" / "vocab.json"
 MERGES_PATH = Path("data") / "bbpe" / "merges.txt"
-BASE_CKPT = Path("out") / "decoder_epoch1.pt"
+BASE_CKPT = Path("out") / "decoder_latest.pt"
 OUT_DIR = Path("out")
 
 BATCH_SIZE = 16
-NUM_EPOCHS = 64
-LEARNING_RATE = 5e-4
+NUM_EPOCHS = 16
+LEARNING_RATE = 2e-3
 LOG_INTERVAL = 20
 SEED = 42
 IGNORE_INDEX = -100
@@ -286,26 +286,29 @@ def main() -> None:
         ppl = math.exp(val_loss) if val_loss < 20 else float("inf")
         print(f"epoch {epoch + 1} avg loss {val_loss:.4f}, ppl {ppl:.2f}")
 
-    # 只在训练结束后保存最后一次checkpoint
-    ckpt_path = OUT_DIR / "sft_final.pt"
-    torch.save(
-        {
-            "model_state": model.state_dict(),
-            "vocab_size": vocab_size,
-            "config": {
-                "dim": model.embed.embedding_dim,
-                "num_layers": len(model.layers),
-                "num_q_heads": model.layers[0].attn.num_q_heads,
-                "num_kv_heads": model.layers[0].attn.num_kv_heads,
-                "moe_hidden": model.layers[0].moe.experts[0][0].out_features // 2,
-                "num_experts": len(model.layers[0].moe.experts),
-                "max_seq_len": max_seq_len,
+        # 每个epoch结束后都保存最新的模型（覆盖更新）
+        ckpt_path = OUT_DIR / "sft_latest.pt"
+        torch.save(
+            {
+                "model_state": model.state_dict(),
+                "vocab_size": vocab_size,
+                "config": {
+                    "dim": model.embed.embedding_dim,
+                    "num_layers": len(model.layers),
+                    "num_q_heads": model.layers[0].attn.num_q_heads,
+                    "num_kv_heads": model.layers[0].attn.num_kv_heads,
+                    "moe_hidden": model.layers[0].moe.experts[0][0].out_features // 2,
+                    "num_experts": len(model.layers[0].moe.experts),
+                    "max_seq_len": max_seq_len,
+                },
+                "epoch": epoch + 1,
+                "global_step": global_step,
+                "val_loss": val_loss,
+                "ppl": ppl,
             },
-        },
-        ckpt_path,
-    )
-
-    print(f"Saved final SFT checkpoint to {ckpt_path}")
+            ckpt_path,
+        )
+        print(f"Saved latest SFT checkpoint to {ckpt_path} (epoch {epoch + 1})")
 
 
 if __name__ == "__main__":

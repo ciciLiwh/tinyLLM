@@ -15,10 +15,10 @@ VOCAB_PATH = DATA_DIR / "bbpe" / "vocab.json"
 TRAIN_BIN = DATA_DIR / "pretrain.bin"
 
 BLOCK_SIZE = 256
-BATCH_SIZE = 16
-NUM_EPOCHS = 1
-LEARNING_RATE = 3e-4
-LOG_INTERVAL = 1000
+BATCH_SIZE = 8
+NUM_EPOCHS = 64
+LEARNING_RATE = 5e-4
+LOG_INTERVAL = 50
 OUT_DIR = Path("out")
 SEED = 42
 
@@ -51,7 +51,7 @@ def build_model(vocab_size: int) -> DecoderOnlyTransformer:
     return DecoderOnlyTransformer(
         vocab_size=vocab_size,
         dim=128,
-        num_layers=4,
+        num_layers=3,
         num_q_heads=4,
         num_kv_heads=2,
         moe_hidden=256,

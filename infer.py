@@ -15,8 +15,10 @@ from model import DecoderOnlyTransformer, select_device
 
 VOCAB_PATH = Path("data") / "bbpe" / "vocab.json"
 MERGES_PATH = Path("data") / "bbpe" / "merges.txt"
-CKPT_PATH = Path("out") / "sft_final.pt"
 
+# CKPT_PATH = Path("out") / "decoder_latest.pt"
+# CKPT_PATH = Path("out") / "sft_latest.pt"
+CKPT_PATH = Path("out") / "grpo_latest.pt"
 
 # =========================
 # Prompt

@@ -1,29 +1,398 @@
 Using device: mps
-Vocab size: 4096
-Epoch 1/1
-step 500: loss 5.2409
-step 1000: loss 4.8247
-step 1500: loss 4.4656
-step 2000: loss 4.2866
-step 2500: loss 4.0276
-step 3000: loss 3.7972
-step 3500: loss 3.5883
-step 4000: loss 3.4655
-step 4500: loss 3.2733
-step 5000: loss 3.0443
-step 5500: loss 2.8729
-step 6000: loss 2.7502
-step 6500: loss 2.6451
-step 7000: loss 2.5699
-step 7500: loss 2.4352
-step 8000: loss 2.2699
-step 8500: loss 2.1947
-step 9000: loss 2.1530
-step 9500: loss 1.9987
-step 10000: loss 1.9068
-step 10500: loss 1.7812
-step 11000: loss 1.6724
-step 11500: loss 1.5959
-step 12000: loss 1.5633
-validation loss: 1.7541
-Saved checkpoint to out/decoder_epoch1.pt
+Vocab size: 2048
+Epoch 1/64
+step 50: loss 5.9842
+step 100: loss 5.9266
+step 150: loss 5.8824
+step 200: loss 5.7021
+Saved latest checkpoint to out/decoder_latest.pt (epoch 1)
+Epoch 2/64
+step 250: loss 5.4697
+step 300: loss 5.3888
+step 350: loss 5.2136
+step 400: loss 5.2825
+Saved latest checkpoint to out/decoder_latest.pt (epoch 2)
+Epoch 3/64
+step 450: loss 4.9429
+step 500: loss 5.0532
+step 550: loss 5.0125
+step 600: loss 5.0351
+Saved latest checkpoint to out/decoder_latest.pt (epoch 3)
+Epoch 4/64
+step 650: loss 5.0203
+step 700: loss 4.9297
+step 750: loss 4.8687
+step 800: loss 4.8243
+Saved latest checkpoint to out/decoder_latest.pt (epoch 4)
+Epoch 5/64
+step 850: loss 4.7763
+step 900: loss 4.8099
+step 950: loss 4.7074
+step 1000: loss 4.7544
+step 1050: loss 4.6425
+Saved latest checkpoint to out/decoder_latest.pt (epoch 5)
+Epoch 6/64
+step 1100: loss 4.6373
+step 1150: loss 4.7591
+step 1200: loss 4.6506
+step 1250: loss 4.6181
+Saved latest checkpoint to out/decoder_latest.pt (epoch 6)
+Epoch 7/64
+step 1300: loss 4.4652
+step 1350: loss 4.5547
+step 1400: loss 4.5846
+step 1450: loss 4.6292
+Saved latest checkpoint to out/decoder_latest.pt (epoch 7)
+Epoch 8/64
+step 1500: loss 4.4085
+step 1550: loss 4.4124
+step 1600: loss 4.4177
+step 1650: loss 4.4637
+Saved latest checkpoint to out/decoder_latest.pt (epoch 8)
+Epoch 9/64
+step 1700: loss 4.3140
+step 1750: loss 4.2579
+step 1800: loss 4.3197
+step 1850: loss 4.4534
+Saved latest checkpoint to out/decoder_latest.pt (epoch 9)
+Epoch 10/64
+step 1900: loss 4.3345
+step 1950: loss 4.2857
+step 2000: loss 4.1381
+step 2050: loss 4.3024
+step 2100: loss 4.4049
+Saved latest checkpoint to out/decoder_latest.pt (epoch 10)
+Epoch 11/64
+step 2150: loss 4.3008
+step 2200: loss 4.2383
+step 2250: loss 4.1857
+step 2300: loss 4.2384
+Saved latest checkpoint to out/decoder_latest.pt (epoch 11)
+Epoch 12/64
+step 2350: loss 4.1534
+step 2400: loss 4.2752
+step 2450: loss 4.2164
+step 2500: loss 4.2171
+Saved latest checkpoint to out/decoder_latest.pt (epoch 12)
+Epoch 13/64
+step 2550: loss 4.1684
+step 2600: loss 4.2915
+step 2650: loss 4.1901
+step 2700: loss 4.0549
+Saved latest checkpoint to out/decoder_latest.pt (epoch 13)
+Epoch 14/64
+step 2750: loss 3.9490
+step 2800: loss 4.1129
+step 2850: loss 4.1696
+step 2900: loss 4.0771
+Saved latest checkpoint to out/decoder_latest.pt (epoch 14)
+Epoch 15/64
+step 2950: loss 4.0139
+step 3000: loss 4.0517
+step 3050: loss 3.9584
+step 3100: loss 4.1515
+step 3150: loss 4.1436
+Saved latest checkpoint to out/decoder_latest.pt (epoch 15)
+Epoch 16/64
+step 3200: loss 3.8621
+step 3250: loss 3.9848
+step 3300: loss 3.9949
+step 3350: loss 3.9843
+Saved latest checkpoint to out/decoder_latest.pt (epoch 16)
+Epoch 17/64
+step 3400: loss 3.8460
+step 3450: loss 3.9480
+step 3500: loss 3.9363
+step 3550: loss 3.8816
+Saved latest checkpoint to out/decoder_latest.pt (epoch 17)
+Epoch 18/64
+step 3600: loss 3.7605
+step 3650: loss 4.0875
+step 3700: loss 3.8450
+step 3750: loss 4.0165
+Saved latest checkpoint to out/decoder_latest.pt (epoch 18)
+Epoch 19/64
+step 3800: loss 3.7087
+step 3850: loss 3.8518
+step 3900: loss 3.8234
+step 3950: loss 3.8414
+Saved latest checkpoint to out/decoder_latest.pt (epoch 19)
+Epoch 20/64
+step 4000: loss 3.6454
+step 4050: loss 3.8269
+step 4100: loss 3.7576
+step 4150: loss 3.7968
+step 4200: loss 3.8120
+Saved latest checkpoint to out/decoder_latest.pt (epoch 20)
+Epoch 21/64
+step 4250: loss 3.5897
+step 4300: loss 3.7542
+step 4350: loss 3.8119
+step 4400: loss 3.9082
+Saved latest checkpoint to out/decoder_latest.pt (epoch 21)
+Epoch 22/64
+step 4450: loss 3.6956
+step 4500: loss 3.7023
+step 4550: loss 3.7490
+step 4600: loss 3.6487
+Saved latest checkpoint to out/decoder_latest.pt (epoch 22)
+Epoch 23/64
+step 4650: loss 3.6620
+step 4700: loss 3.6011
+step 4750: loss 3.6439
+step 4800: loss 3.6339
+Saved latest checkpoint to out/decoder_latest.pt (epoch 23)
+Epoch 24/64
+step 4850: loss 3.4529
+step 4900: loss 3.5284
+step 4950: loss 3.6332
+step 5000: loss 3.6282
+Saved latest checkpoint to out/decoder_latest.pt (epoch 24)
+Epoch 25/64
+step 5050: loss 3.3035
+step 5100: loss 3.4924
+step 5150: loss 3.6193
+step 5200: loss 3.5660
+step 5250: loss 3.7428
+Saved latest checkpoint to out/decoder_latest.pt (epoch 25)
+Epoch 26/64
+step 5300: loss 3.3618
+step 5350: loss 3.3922
+step 5400: loss 3.5563
+step 5450: loss 3.5628
+Saved latest checkpoint to out/decoder_latest.pt (epoch 26)
+Epoch 27/64
+step 5500: loss 3.1710
+step 5550: loss 3.4018
+step 5600: loss 3.4150
+step 5650: loss 3.5102
+Saved latest checkpoint to out/decoder_latest.pt (epoch 27)
+Epoch 28/64
+step 5700: loss 3.3542
+step 5750: loss 3.3643
+step 5800: loss 3.3309
+step 5850: loss 3.4911
+Saved latest checkpoint to out/decoder_latest.pt (epoch 28)
+Epoch 29/64
+step 5900: loss 3.2853
+step 5950: loss 3.3049
+step 6000: loss 3.4296
+step 6050: loss 3.3624
+Saved latest checkpoint to out/decoder_latest.pt (epoch 29)
+Epoch 30/64
+step 6100: loss 3.1196
+step 6150: loss 3.1113
+step 6200: loss 3.4329
+step 6250: loss 3.3377
+step 6300: loss 3.3311
+Saved latest checkpoint to out/decoder_latest.pt (epoch 30)
+Epoch 31/64
+step 6350: loss 3.1554
+step 6400: loss 3.2100
+step 6450: loss 3.3164
+step 6500: loss 3.4270
+Saved latest checkpoint to out/decoder_latest.pt (epoch 31)
+Epoch 32/64
+step 6550: loss 3.1897
+step 6600: loss 3.2300
+step 6650: loss 3.2736
+step 6700: loss 3.3719
+Saved latest checkpoint to out/decoder_latest.pt (epoch 32)
+Epoch 33/64
+step 6750: loss 3.0112
+step 6800: loss 3.2517
+step 6850: loss 3.2754
+step 6900: loss 3.2370
+Saved latest checkpoint to out/decoder_latest.pt (epoch 33)
+Epoch 34/64
+step 6950: loss 3.1460
+step 7000: loss 3.1479
+step 7050: loss 3.1294
+step 7100: loss 3.0995
+Saved latest checkpoint to out/decoder_latest.pt (epoch 34)
+Epoch 35/64
+step 7150: loss 2.8364
+step 7200: loss 2.9231
+step 7250: loss 3.1828
+step 7300: loss 3.2068
+step 7350: loss 3.3168
+Saved latest checkpoint to out/decoder_latest.pt (epoch 35)
+Epoch 36/64
+step 7400: loss 2.8949
+step 7450: loss 3.0466
+step 7500: loss 3.1016
+step 7550: loss 3.1173
+Saved latest checkpoint to out/decoder_latest.pt (epoch 36)
+Epoch 37/64
+step 7600: loss 2.9686
+step 7650: loss 3.0225
+step 7700: loss 3.1703
+step 7750: loss 3.1428
+Saved latest checkpoint to out/decoder_latest.pt (epoch 37)
+Epoch 38/64
+step 7800: loss 2.7887
+step 7850: loss 3.0138
+step 7900: loss 2.9165
+step 7950: loss 3.0582
+Saved latest checkpoint to out/decoder_latest.pt (epoch 38)
+Epoch 39/64
+step 8000: loss 2.8835
+step 8050: loss 2.7860
+step 8100: loss 2.9683
+step 8150: loss 3.0322
+Saved latest checkpoint to out/decoder_latest.pt (epoch 39)
+Epoch 40/64
+step 8200: loss 2.7424
+step 8250: loss 2.8478
+step 8300: loss 3.0053
+step 8350: loss 2.8710
+step 8400: loss 2.9731
+Saved latest checkpoint to out/decoder_latest.pt (epoch 40)
+Epoch 41/64
+step 8450: loss 2.7757
+step 8500: loss 2.9064
+step 8550: loss 2.9003
+step 8600: loss 3.0955
+Saved latest checkpoint to out/decoder_latest.pt (epoch 41)
+Epoch 42/64
+step 8650: loss 2.7830
+step 8700: loss 2.9021
+step 8750: loss 2.8617
+step 8800: loss 2.9198
+Saved latest checkpoint to out/decoder_latest.pt (epoch 42)
+Epoch 43/64
+step 8850: loss 2.7105
+step 8900: loss 2.7631
+step 8950: loss 2.8432
+step 9000: loss 2.9969
+Saved latest checkpoint to out/decoder_latest.pt (epoch 43)
+Epoch 44/64
+step 9050: loss 2.7025
+step 9100: loss 2.9040
+step 9150: loss 2.8864
+step 9200: loss 2.9436
+Saved latest checkpoint to out/decoder_latest.pt (epoch 44)
+Epoch 45/64
+step 9250: loss 2.6526
+step 9300: loss 2.6736
+step 9350: loss 2.7324
+step 9400: loss 2.8721
+step 9450: loss 2.8920
+Saved latest checkpoint to out/decoder_latest.pt (epoch 45)
+Epoch 46/64
+step 9500: loss 2.5816
+step 9550: loss 2.6407
+step 9600: loss 2.7746
+step 9650: loss 2.8579
+Saved latest checkpoint to out/decoder_latest.pt (epoch 46)
+Epoch 47/64
+step 9700: loss 2.6518
+step 9750: loss 2.7447
+step 9800: loss 2.8817
+step 9850: loss 2.7813
+Saved latest checkpoint to out/decoder_latest.pt (epoch 47)
+Epoch 48/64
+step 9900: loss 2.5370
+step 9950: loss 2.6111
+step 10000: loss 2.7217
+step 10050: loss 2.8646
+Saved latest checkpoint to out/decoder_latest.pt (epoch 48)
+Epoch 49/64
+step 10100: loss 2.6037
+step 10150: loss 2.6466
+step 10200: loss 2.7010
+step 10250: loss 2.7685
+Saved latest checkpoint to out/decoder_latest.pt (epoch 49)
+Epoch 50/64
+step 10300: loss 2.4859
+step 10350: loss 2.5326
+step 10400: loss 2.6533
+step 10450: loss 2.8287
+step 10500: loss 2.7334
+Saved latest checkpoint to out/decoder_latest.pt (epoch 50)
+Epoch 51/64
+step 10550: loss 2.6599
+step 10600: loss 2.6627
+step 10650: loss 2.6500
+step 10700: loss 2.8070
+Saved latest checkpoint to out/decoder_latest.pt (epoch 51)
+Epoch 52/64
+step 10750: loss 2.4358
+step 10800: loss 2.4692
+step 10850: loss 2.6696
+step 10900: loss 2.6473
+Saved latest checkpoint to out/decoder_latest.pt (epoch 52)
+Epoch 53/64
+step 10950: loss 2.4527
+step 11000: loss 2.6353
+step 11050: loss 2.6355
+step 11100: loss 2.6471
+Saved latest checkpoint to out/decoder_latest.pt (epoch 53)
+Epoch 54/64
+step 11150: loss 2.3691
+step 11200: loss 2.5320
+step 11250: loss 2.5567
+step 11300: loss 2.6012
+Saved latest checkpoint to out/decoder_latest.pt (epoch 54)
+Epoch 55/64
+step 11350: loss 2.3274
+step 11400: loss 2.4526
+step 11450: loss 2.4750
+step 11500: loss 2.6022
+step 11550: loss 2.7089
+Saved latest checkpoint to out/decoder_latest.pt (epoch 55)
+Epoch 56/64
+step 11600: loss 2.3490
+step 11650: loss 2.6829
+step 11700: loss 2.6599
+step 11750: loss 2.8180
+Saved latest checkpoint to out/decoder_latest.pt (epoch 56)
+Epoch 57/64
+step 11800: loss 2.3243
+step 11850: loss 2.4722
+step 11900: loss 2.6289
+step 11950: loss 2.6686
+Saved latest checkpoint to out/decoder_latest.pt (epoch 57)
+Epoch 58/64
+step 12000: loss 2.3630
+step 12050: loss 2.4659
+step 12100: loss 2.4629
+step 12150: loss 2.5054
+Saved latest checkpoint to out/decoder_latest.pt (epoch 58)
+Epoch 59/64
+step 12200: loss 2.3210
+step 12250: loss 2.5060
+step 12300: loss 2.5098
+step 12350: loss 2.6317
+Saved latest checkpoint to out/decoder_latest.pt (epoch 59)
+Epoch 60/64
+step 12400: loss 2.3375
+step 12450: loss 2.1946
+step 12500: loss 2.4285
+step 12550: loss 2.5956
+step 12600: loss 2.5691
+Saved latest checkpoint to out/decoder_latest.pt (epoch 60)
+Epoch 61/64
+step 12650: loss 2.3211
+step 12700: loss 2.3351
+step 12750: loss 2.5676
+step 12800: loss 2.5997
+Saved latest checkpoint to out/decoder_latest.pt (epoch 61)
+Epoch 62/64
+step 12850: loss 2.2221
+step 12900: loss 2.3897
+step 12950: loss 2.5181
+step 13000: loss 2.5271
+Saved latest checkpoint to out/decoder_latest.pt (epoch 62)
+Epoch 63/64
+step 13050: loss 2.3886
+step 13100: loss 2.3615
+step 13150: loss 2.3360
+step 13200: loss 2.4495
+Saved latest checkpoint to out/decoder_latest.pt (epoch 63)
+Epoch 64/64
+step 13250: loss 2.1353
+step 13300: loss 2.2915
+step 13350: loss 2.3951
+step 13400: loss 2.4558
+Saved latest checkpoint to out/decoder_latest.pt (epoch 64)
